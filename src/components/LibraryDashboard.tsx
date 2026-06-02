@@ -9,7 +9,8 @@ import {
   pages,
   sectorFilters,
   templateNames,
-  type LegacyPage,
+  productPages,
+  type LibraryPage,
   type LibraryFilter,
 } from '../data/pages'
 
@@ -52,7 +53,7 @@ export function LibraryDashboard() {
         <div>
           <h1 className="lib-title">Library</h1>
           <p className="lib-sub">
-            FSP Data and AI case studies and campaign assets in one shareable hub.
+            FSP Data and AI case studies, product offers, and campaign assets in one shareable hub.
           </p>
         </div>
         <Link className="btn" to="/bundle">
@@ -68,6 +69,12 @@ export function LibraryDashboard() {
           label="Case studies"
           value={caseStudies.length}
           onClick={() => setActiveFilter('case-study')}
+        />
+        <StatChip
+          active={activeFilter === 'product'}
+          label="Products"
+          value={productPages.length}
+          onClick={() => setActiveFilter('product')}
         />
         <StatChip
           active={activeFilter === 'campaign'}
@@ -166,7 +173,7 @@ function StatChip({ active = false, label, value, onClick }: StatChipProps) {
   )
 }
 
-function PageCard({ page }: { page: LegacyPage }) {
+function PageCard({ page }: { page: LibraryPage }) {
   const categoryLabel = categoryLabels[page.category]
 
   return (

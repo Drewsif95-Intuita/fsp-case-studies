@@ -9,11 +9,13 @@ import {
   useParams,
 } from 'react-router-dom'
 import { LibraryDashboard } from './components/LibraryDashboard'
+import { ProductPage } from './components/ProductPage'
 import { Reader } from './components/Reader'
 import { Sidebar } from './components/Sidebar'
 import {
   findPageBySlug,
   findPageBySourceFile,
+  isLegacyPage,
   pages,
 } from './data/pages'
 
@@ -42,7 +44,11 @@ function App() {
 function AppRoutes() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 1120px)').matches,
+  )
 
   const currentPage = useMemo(() => {
     return pages.find((page) => page.routePath === location.pathname)
@@ -80,6 +86,7 @@ function AppRoutes() {
           <Route path="/" element={<LibraryDashboard />} />
           <Route path="/bundle" element={<PageRoute />} />
           <Route path="/case-studies/:slug" element={<PageRoute />} />
+          <Route path="/products/:slug" element={<PageRoute />} />
           <Route path="/campaign/:slug" element={<PageRoute />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -97,6 +104,14 @@ function PageRoute() {
       : findPageBySlug(slug)
 
   if (!page) {
+    return <Navigate to="/" replace />
+  }
+
+  if (page.category === 'product') {
+    return <ProductPage page={page} />
+  }
+
+  if (!isLegacyPage(page)) {
     return <Navigate to="/" replace />
   }
 

@@ -216,6 +216,30 @@
     "order": 8
   },
   {
+    "sourceFile": "intuita_anomaly_demo (2).html",
+    "slug": "anomaly-intelligence",
+    "routePath": "/products/anomaly-intelligence",
+    "label": "Anomaly Intelligence product suite",
+    "title": "Purpose-built anomaly detection products",
+    "fullTitle": "Anomaly Intelligence: productised anomaly detection offers",
+    "shortTitle": "Anomaly Intelligence",
+    "category": "product",
+    "template": "Product suite",
+    "sector": "Analytics product",
+    "description": "A productised anomaly detection suite with five industry-specific offers, operator dashboards, weighted scoring, and alert routing.",
+    "summary": "A native product page for an analytics-led anomaly detection suite, separating sellable product offers from client case studies while keeping the same FSP branded hub experience.",
+    "tags": ["Product suite", "Anomaly detection", "Operator dashboard"],
+    "readMinutes": 6,
+    "updated": "Jun 02",
+    "audience": "Product",
+    "owner": {
+      "name": "Analytics Department",
+      "initials": "AD"
+    },
+    "productKey": "anomaly-intelligence",
+    "order": 9
+  },
+  {
     "sourceFile": "10_Campaign_Overview.html",
     "slug": "overview",
     "routePath": "/campaign/overview",
@@ -237,7 +261,7 @@
       "name": "Drew Butchart",
       "initials": "DB"
     },
-    "order": 9
+    "order": 10
   },
   {
     "sourceFile": "LinkedIn_Posts_Full_Campaign.md",
@@ -261,6 +285,6 @@
       "name": "Drew Butchart",
       "initials": "DB"
     },
-    "order": 10
+    "order": 11
   }
 ]

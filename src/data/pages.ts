@@ -1,8 +1,8 @@
 import pageCatalog from './page-catalog.json'
 
-export type PageCategory = 'overview' | 'case-study' | 'campaign'
+export type PageCategory = 'overview' | 'case-study' | 'product' | 'campaign'
 export type LibraryFilter = 'all' | PageCategory
-export type Audience = 'Anonymised' | 'Internal'
+export type Audience = 'Anonymised' | 'Internal' | 'Product'
 
 export type PageOwner = {
   name: string
@@ -13,7 +13,8 @@ export type PageCatalogItem = {
   sourceFile: string
   slug: string
   routePath: string
-  assetFile: string
+  assetFile?: string
+  productKey?: string
   label: string
   title: string
   fullTitle?: string
@@ -31,11 +32,11 @@ export type PageCatalogItem = {
   order: number
 }
 
-export type LegacyPage = Omit<
+export type LibraryPage = Omit<
   PageCatalogItem,
   'fullTitle' | 'summary' | 'tags' | 'readMinutes' | 'updated' | 'audience' | 'owner'
 > & {
-  assetPath: string
+  assetPath?: string
   fullTitle: string
   summary: string
   tags: string[]
@@ -47,9 +48,15 @@ export type LegacyPage = Omit<
   sectorKey: string
 }
 
+export type LegacyPage = LibraryPage & {
+  assetFile: string
+  assetPath: string
+}
+
 export const categoryLabels = {
   overview: 'Overview',
   'case-study': 'Case studies',
+  product: 'Products',
   campaign: 'Campaign assets',
 } satisfies Record<PageCategory, string>
 
@@ -70,12 +77,14 @@ function toKey(value: string) {
 }
 
 function defaultAudience(category: PageCategory): Audience {
+  if (category === 'product') return 'Product'
   return category === 'case-study' ? 'Anonymised' : 'Internal'
 }
 
 function defaultReadMinutes(category: PageCategory) {
   if (category === 'overview') return 12
   if (category === 'campaign') return 11
+  if (category === 'product') return 6
   return 8
 }
 
@@ -84,13 +93,15 @@ function buildTags(page: PageCatalogItem, sectorLabel: string) {
   return tags.filter((tag): tag is string => Boolean(tag))
 }
 
-export const pages: LegacyPage[] = catalog
+export const pages: LibraryPage[] = catalog
   .map((page) => {
     const sectorLabel = page.sector ?? categoryLabels[page.category]
 
     return {
       ...page,
-      assetPath: `${assetBasePath}legacy-pages/${page.assetFile}`,
+      assetPath: page.assetFile
+        ? `${assetBasePath}legacy-pages/${page.assetFile}`
+        : undefined,
       fullTitle: page.fullTitle ?? page.title,
       summary: page.summary ?? page.description,
       tags: buildTags(page, sectorLabel),
@@ -105,6 +116,7 @@ export const pages: LegacyPage[] = catalog
   .sort((left, right) => left.order - right.order)
 
 export const caseStudies = pages.filter((page) => page.category === 'case-study')
+export const productPages = pages.filter((page) => page.category === 'product')
 export const campaignPages = pages.filter((page) => page.category === 'campaign')
 
 export const templateNames = Array.from(
@@ -133,4 +145,8 @@ export function findPageBySlug(slug: string | undefined) {
 
 export function findPageBySourceFile(sourceFile: string) {
   return pages.find((page) => page.sourceFile === sourceFile)
+}
+
+export function isLegacyPage(page: LibraryPage): page is LegacyPage {
+  return Boolean(page.assetFile && page.assetPath)
 }

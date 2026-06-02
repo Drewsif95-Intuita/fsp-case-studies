@@ -5,28 +5,30 @@ import {
   campaignPages,
   caseStudies,
   pages,
-  type LegacyPage,
+  productPages,
+  type LibraryPage,
 } from '../data/pages'
 
 const sectionCap = 8
 
 type SidebarProps = {
-  currentPage?: LegacyPage
+  currentPage?: LibraryPage
   collapsed: boolean
   onToggleCollapsed: () => void
 }
 
-type SectionKey = 'cases' | 'campaigns'
+type SectionKey = 'cases' | 'products' | 'campaigns'
 
 export function Sidebar({ currentPage, collapsed, onToggleCollapsed }: SidebarProps) {
   const [query, setQuery] = useState('')
   const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
     cases: true,
+    products: true,
     campaigns: true,
   })
 
   const normalisedQuery = query.trim().toLowerCase()
-  const matches = (page: LegacyPage) => {
+  const matches = (page: LibraryPage) => {
     if (!normalisedQuery) return true
     const searchable = [
       page.shortTitle,
@@ -44,6 +46,7 @@ export function Sidebar({ currentPage, collapsed, onToggleCollapsed }: SidebarPr
 
   const groups = {
     cases: caseStudies.filter(matches),
+    products: productPages.filter(matches),
     campaigns: campaignPages.filter(matches),
   }
 
@@ -116,6 +119,19 @@ export function Sidebar({ currentPage, collapsed, onToggleCollapsed }: SidebarPr
       </NavSection>
 
       <NavSection
+        count={productPages.length}
+        label="Products"
+        open={openSections.products}
+        onToggle={() => toggleSection('products')}
+      >
+        {groups.products.length > 0 ? (
+          groups.products.map((page) => <NavPage key={page.sourceFile} page={page} />)
+        ) : (
+          <EmptyState />
+        )}
+      </NavSection>
+
+      <NavSection
         count={campaignPages.length}
         label="Campaigns"
         open={openSections.campaigns}
@@ -165,7 +181,7 @@ function NavSection({ label, count, open, onToggle, children }: NavSectionProps)
   )
 }
 
-function NavPage({ page }: { page: LegacyPage }) {
+function NavPage({ page }: { page: LibraryPage }) {
   return (
     <NavLink className="nav-case" to={page.routePath}>
       <span className="row-main">
