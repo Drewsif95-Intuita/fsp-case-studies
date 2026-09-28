@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // Build output, release packages and the server's Python environment hold nothing to lint.
+  globalIgnores(['dist', 'artifacts', '.venv', 'server']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

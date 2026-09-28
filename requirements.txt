@@ -1,0 +1,22 @@
+# Runtime packages for App Service (CPython 3.13 on Linux), pinned to the set the FSP Data Products
+# handbook runs on the same plan: every package, including the ones the four direct dependencies
+# pull in, so each deployment installs exactly what was tested. Each has a Linux wheel, so the Azure
+# build compiles nothing.
+fastapi==0.141.1
+uvicorn==0.52.4
+PyJWT==2.13.0
+cryptography==50.0.1
+# pulled in by the four above
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+cffi==2.1.1
+click==8.5.0
+h11==0.16.0
+idna==3.19
+pycparser==3.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+starlette==1.6.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0

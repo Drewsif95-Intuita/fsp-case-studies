@@ -3,14 +3,22 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
+    "cases": "node scripts/cases.mjs",
+    "predev": "npm run cases",
     "dev": "vite",
+    "prebuild": "npm run cases",
     "build": "tsc -b && vite build",
+    "build:hosted": "tsc -b && vite build --mode hosted",
     "extract:legacy": "node scripts/extract-legacy-pages.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@azure/msal-browser": "5.21.0",
     "lucide-react": "^1.14.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

@@ -3,10 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <meta
       name="description"
       content="Internal FSP Data and AI case study programme."
     />
+    <!-- Applies a saved theme before the first paint. A file rather than inline, so the FSP site's
+         Content-Security-Policy can refuse inline script. -->
+    <script src="/theme-init.js"></script>
+    <!-- Adobe Fonts kit: Neue Haas Unica, used where the brand's Neue Haas Grotesk is not installed. -->
     <link rel="stylesheet" href="https://use.typekit.net/eal8wec.css" />
     <title>FSP Case Study Hub</title>
   </head>

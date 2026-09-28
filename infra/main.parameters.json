@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "fsp-case-study-hub" },
+    "location": { "value": "uksouth" },
+    "deployedBy": { "value": "" },
+    "createdAt": { "value": "" },
+    "existingAppServicePlanId": {
+      "value": "/subscriptions/d609115f-cddc-476c-89db-405004e7b68c/resourceGroups/fsp-dataproduct-dev-rg/providers/Microsoft.Web/serverfarms/ASP-fspdataproductdevrg-a4ba"
+    },
+    "tenantId": { "value": "805d0794-f9ac-42a6-b40a-9e41418a213e" },
+    "clientId": { "value": "" },
+    "publicOrigin": { "value": "" }
+  }
+}

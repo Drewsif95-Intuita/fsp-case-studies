@@ -1,6 +1,13 @@
-import pageCatalog from './page-catalog.json'
+import pageCatalog from 'virtual:page-catalog'
+import {
+  formatDay,
+  statusShort,
+  type CaseCatalogue,
+  type CaseRecord,
+  type CaseStatusKey,
+} from './cases'
 
-export type PageCategory = 'overview' | 'case-study' | 'product' | 'campaign'
+export type PageCategory = 'overview' | 'case-study' | 'legacy' | 'product' | 'campaign'
 export type LibraryFilter = 'all' | PageCategory
 export type Audience = 'Anonymised' | 'Internal' | 'Product'
 
@@ -46,6 +53,12 @@ export type LibraryPage = Omit<
   owner: PageOwner
   sectorLabel: string
   sectorKey: string
+  // Set only on pages generated from a case record.
+  client?: string
+  caseId?: string
+  formats?: string[]
+  statusKey?: CaseStatusKey
+  statusLabel?: string
 }
 
 export type LegacyPage = LibraryPage & {
@@ -53,9 +66,23 @@ export type LegacyPage = LibraryPage & {
   assetPath: string
 }
 
+export type Library = {
+  pages: LibraryPage[]
+  caseStudies: LibraryPage[]
+  legacyPages: LibraryPage[]
+  productPages: LibraryPage[]
+  campaignPages: LibraryPage[]
+  engagementTypes: string[]
+  sectorFilters: Array<{ label: string; value: string }>
+  libraryFilters: Array<{ label: string; value: LibraryFilter }>
+  findPageByRoute: (pathname: string) => LibraryPage | undefined
+  findPageBySourceFile: (sourceFile: string) => LibraryPage | undefined
+}
+
 export const categoryLabels = {
   overview: 'Overview',
   'case-study': 'Case studies',
+  legacy: 'Legacy pages',
   product: 'Products',
   campaign: 'Campaign assets',
 } satisfies Record<PageCategory, string>
@@ -65,10 +92,9 @@ const defaultOwner: PageOwner = {
   initials: 'FSP',
 }
 
-const catalog = pageCatalog as PageCatalogItem[]
 const assetBasePath = import.meta.env.BASE_URL
 
-function toKey(value: string) {
+export function toKey(value: string) {
   return value
     .toLowerCase()
     .replace(/&/g, 'and')
@@ -78,7 +104,7 @@ function toKey(value: string) {
 
 function defaultAudience(category: PageCategory): Audience {
   if (category === 'product') return 'Product'
-  return category === 'case-study' ? 'Anonymised' : 'Internal'
+  return category === 'legacy' ? 'Anonymised' : 'Internal'
 }
 
 function defaultReadMinutes(category: PageCategory) {
@@ -93,7 +119,44 @@ function buildTags(page: PageCatalogItem, sectorLabel: string) {
   return tags.filter((tag): tag is string => Boolean(tag))
 }
 
-export const pages: LibraryPage[] = catalog
+const formatLabels = { onePager: 'One-pager', longForm: 'Long form' } as const
+
+function casePage(record: CaseRecord, order: number): LibraryPage {
+  const formats = (['onePager', 'longForm'] as const)
+    .filter((key) => record.formats[key])
+    .map((key) => formatLabels[key])
+
+  return {
+    sourceFile: record.recordPath,
+    slug: record.id,
+    routePath: `/cases/${record.id}`,
+    label: `${record.client} case study`,
+    title: record.title,
+    fullTitle: `${record.client}: ${record.title}`,
+    shortTitle: record.title,
+    category: 'case-study',
+    template: record.engagementType ?? undefined,
+    sector: record.sector,
+    description: record.summary,
+    summary: record.summary,
+    tags: [...formats, ...record.technologies, ...record.capabilities],
+    readMinutes: record.readMinutes,
+    updated: formatDay(record.updated),
+    audience: 'Internal',
+    owner: defaultOwner,
+    order,
+    sectorLabel: record.sector,
+    sectorKey: toKey(record.sector),
+    client: record.client,
+    caseId: record.id,
+    formats,
+    statusKey: record.status.key,
+    statusLabel: statusShort[record.status.key],
+  }
+}
+
+// Product, legacy and campaign pages are fixed at build time; a hosted build keeps only products.
+const catalogPages: LibraryPage[] = (pageCatalog as PageCatalogItem[])
   .map((page) => {
     const sectorLabel = page.sector ?? categoryLabels[page.category]
 
@@ -115,36 +178,50 @@ export const pages: LibraryPage[] = catalog
   })
   .sort((left, right) => left.order - right.order)
 
-export const caseStudies = pages.filter((page) => page.category === 'case-study')
-export const productPages = pages.filter((page) => page.category === 'product')
-export const campaignPages = pages.filter((page) => page.category === 'campaign')
+export function buildLibrary(catalogue: CaseCatalogue): Library {
+  // Most recently changed records first, so the activity rail shows current work.
+  const casePages = [...catalogue.cases]
+    .sort(
+      (left, right) =>
+        right.updated.localeCompare(left.updated) || left.client.localeCompare(right.client),
+    )
+    .map(casePage)
+  const pages = [...casePages, ...catalogPages]
+  const caseStudies = pages.filter((page) => page.category === 'case-study')
 
-export const templateNames = Array.from(
-  new Set(caseStudies.map((page) => page.template).filter(Boolean)),
-)
+  // One option per key: legacy and generated pages can spell the same sector differently.
+  const sectorOptions = new Map<string, string>()
+  for (const page of pages) {
+    if (!sectorOptions.has(page.sectorKey)) sectorOptions.set(page.sectorKey, page.sectorLabel)
+  }
 
-export const sectorFilters = [
-  { label: 'All sectors', value: 'all' },
-  ...Array.from(new Set(pages.map((page) => page.sectorLabel))).map((sector) => ({
-    label: sector,
-    value: toKey(sector),
-  })),
-]
-
-export const libraryFilters = [
-  { label: 'All', value: 'all' },
-  ...Object.entries(categoryLabels).map(([value, label]) => ({
-    label,
-    value: value as PageCategory,
-  })),
-] satisfies Array<{ label: string; value: LibraryFilter }>
-
-export function findPageBySlug(slug: string | undefined) {
-  return pages.find((page) => page.slug === slug)
-}
-
-export function findPageBySourceFile(sourceFile: string) {
-  return pages.find((page) => page.sourceFile === sourceFile)
+  return {
+    pages,
+    caseStudies,
+    legacyPages: pages.filter((page) => page.category === 'legacy'),
+    productPages: pages.filter((page) => page.category === 'product'),
+    campaignPages: pages.filter((page) => page.category === 'campaign'),
+    engagementTypes: Array.from(
+      new Set(caseStudies.map((page) => page.template).filter((type): type is string => Boolean(type))),
+    ),
+    sectorFilters: [
+      { label: 'All sectors', value: 'all' },
+      ...Array.from(sectorOptions, ([value, label]) => ({ label, value })).sort(
+        (left, right) =>
+          Number(left.value === 'unclassified') - Number(right.value === 'unclassified') ||
+          left.label.localeCompare(right.label),
+      ),
+    ],
+    // Only the kinds of page this build carries, so the FSP site offers no empty filters.
+    libraryFilters: [
+      { label: 'All', value: 'all' },
+      ...Object.entries(categoryLabels)
+        .filter(([value]) => pages.some((page) => page.category === value))
+        .map(([value, label]) => ({ label, value: value as PageCategory })),
+    ],
+    findPageByRoute: (pathname) => pages.find((page) => page.routePath === pathname),
+    findPageBySourceFile: (sourceFile) => pages.find((page) => page.sourceFile === sourceFile),
+  }
 }
 
 export function isLegacyPage(page: LibraryPage): page is LegacyPage {

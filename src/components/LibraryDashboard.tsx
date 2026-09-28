@@ -1,20 +1,22 @@
 import { ArrowRight, BookOpen, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  campaignPages,
-  caseStudies,
-  categoryLabels,
-  libraryFilters,
-  pages,
-  sectorFilters,
-  templateNames,
-  productPages,
-  type LibraryPage,
-  type LibraryFilter,
-} from '../data/pages'
+import { useLibrary } from '../data/library'
+import { categoryLabels, type LibraryPage, type LibraryFilter } from '../data/pages'
 
 export function LibraryDashboard() {
+  const { catalogue, library } = useLibrary()
+  const {
+    pages,
+    caseStudies,
+    legacyPages,
+    productPages,
+    campaignPages,
+    engagementTypes,
+    sectorFilters,
+    libraryFilters,
+  } = library
+  const hosted = catalogue.mode === 'hosted'
   const [query, setQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState<LibraryFilter>('all')
   const [activeSector, setActiveSector] = useState('all')
@@ -28,6 +30,7 @@ export function LibraryDashboard() {
       const matchesSector =
         activeSector === 'all' || page.sectorKey === activeSector
       const searchable = [
+        page.client,
         page.title,
         page.fullTitle,
         page.shortTitle,
@@ -43,23 +46,49 @@ export function LibraryDashboard() {
 
       return matchesFilter && matchesSector && searchable.includes(searchTerm)
     })
-  }, [activeFilter, activeSector, query])
+  }, [activeFilter, activeSector, pages, query])
 
   const recentPages = pages.slice(0, 4)
 
   return (
     <main className="library">
-      <div className="lib-header">
+      <header className="lib-hero">
         <div>
-          <h1 className="lib-title">Library</h1>
+          <p className="eyebrow eyebrow--line">FSP · Case study library</p>
+          <h1 className="lib-title">Case studies</h1>
+          <div className="lib-rule" aria-hidden="true" />
           <p className="lib-sub">
-            FSP Data and AI case studies, product offers, and campaign assets in one shareable hub.
+            Each engagement's case study, generated from its case record, with the decks to
+            download.{' '}
+            {hosted
+              ? 'Product offers sit alongside.'
+              : 'Product offers and campaign assets sit alongside.'}
           </p>
         </div>
-        <Link className="btn" to="/bundle">
-          <BookOpen size={13} aria-hidden="true" />
-          Open bundle
-        </Link>
+        {library.findPageByRoute('/bundle') ? (
+          <Link className="btn" to="/bundle">
+            <BookOpen size={14} aria-hidden="true" />
+            Legacy bundle
+          </Link>
+        ) : null}
+      </header>
+
+      <div className="callout" role="note">
+        <div>
+          <p className="eyebrow">{hosted ? 'FSP internal' : 'Local preview'}</p>
+          {hosted ? (
+            <p>
+              For FSP colleagues. These case studies are AI-reviewed internal drafts. None is
+              cleared for external use unless its page says so, so check the status before sharing
+              anything outside FSP.
+            </p>
+          ) : (
+            <p>
+              Case pages are built from <code>{catalogue.generatedFrom}</code> and include internal
+              drafts. Nothing here is cleared for external use unless its status says so.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="stat-chips" aria-label="Library summary">
@@ -70,84 +99,112 @@ export function LibraryDashboard() {
           value={caseStudies.length}
           onClick={() => setActiveFilter('case-study')}
         />
-        <StatChip
-          active={activeFilter === 'product'}
-          label="Products"
-          value={productPages.length}
-          onClick={() => setActiveFilter('product')}
-        />
-        <StatChip
-          active={activeFilter === 'campaign'}
-          label="Campaigns"
-          value={campaignPages.length}
-          onClick={() => setActiveFilter('campaign')}
-        />
-        <StatChip label="Templates" value={templateNames.length} />
-      </div>
-
-      <div className="section-head">
-        <h3>Recent activity</h3>
-      </div>
-      <div className="recent">
-        {recentPages.map((page) => (
-          <Link key={page.sourceFile} className="recent-card" to={page.routePath}>
-            <div className="who">Recently reviewed</div>
-            <div className="what">{page.shortTitle}</div>
-            <div className="when">Updated {page.updated}</div>
-          </Link>
-        ))}
-      </div>
-
-      <div className="section-head all-pages-head">
-        <h3>All pages</h3>
-        <span className="result-count">
-          Showing {filteredPages.length} of {pages.length}
-        </span>
-      </div>
-
-      <div className="toolbar">
-        <label className="search">
-          <Search size={13} aria-hidden="true" />
-          <span className="sr-only">Search by client, sector, or theme</span>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by client, sector, or theme..."
+        {legacyPages.length > 0 ? (
+          <StatChip
+            active={activeFilter === 'legacy'}
+            label="Legacy pages"
+            value={legacyPages.length}
+            onClick={() => setActiveFilter('legacy')}
           />
-        </label>
-
-        <div className="filter-row" aria-label="Page type">
-          {libraryFilters.map((option) => (
-            <button
-              key={option.value}
-              className={activeFilter === option.value ? 'active' : ''}
-              type="button"
-              onClick={() => setActiveFilter(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="filter-row" aria-label="Sector">
-          {sectorFilters.map((option) => (
-            <button
-              key={option.value}
-              className={activeSector === option.value ? 'active' : ''}
-              type="button"
-              onClick={() => setActiveSector(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        ) : null}
+        {productPages.length > 0 ? (
+          <StatChip
+            active={activeFilter === 'product'}
+            label="Products"
+            value={productPages.length}
+            onClick={() => setActiveFilter('product')}
+          />
+        ) : null}
+        {campaignPages.length > 0 ? (
+          <StatChip
+            active={activeFilter === 'campaign'}
+            label="Campaigns"
+            value={campaignPages.length}
+            onClick={() => setActiveFilter('campaign')}
+          />
+        ) : null}
+        <StatChip label="Engagement types" value={engagementTypes.length} />
       </div>
 
-      <div className="cards">
-        {filteredPages.map((page) => (
-          <PageCard key={page.sourceFile} page={page} />
-        ))}
-      </div>
+      <section aria-labelledby="recent-heading">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Case records</p>
+            <h2 id="recent-heading">Recently changed</h2>
+          </div>
+        </div>
+        <div className="recent">
+          {recentPages.map((page) => (
+            <Link key={page.sourceFile} className="recent-card" to={page.routePath}>
+              <div className="who">{page.client ?? categoryLabels[page.category]}</div>
+              <div className="what">{page.shortTitle}</div>
+              <div className="when">Updated {page.updated}</div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="all-heading">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">Browse</p>
+            <h2 id="all-heading">All pages</h2>
+          </div>
+          <span className="result-count">
+            Showing {filteredPages.length} of {pages.length}
+          </span>
+        </div>
+
+        <div className="toolbar">
+          <label className="search">
+            <Search size={15} aria-hidden="true" />
+            <span className="sr-only">Search by client, sector, technology or theme</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search by client, sector, technology or theme..."
+            />
+          </label>
+
+          <div className="filter-group">
+            <span className="filter-label" id="type-filter">Type</span>
+            <div className="filter-row" aria-labelledby="type-filter">
+              {libraryFilters.map((option) => (
+                <button
+                  key={option.value}
+                  className={activeFilter === option.value ? 'active' : ''}
+                  type="button"
+                  onClick={() => setActiveFilter(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <span className="filter-label" id="sector-filter">Sector</span>
+            <div className="filter-row" aria-labelledby="sector-filter">
+              {sectorFilters.map((option) => (
+                <button
+                  key={option.value}
+                  className={activeSector === option.value ? 'active' : ''}
+                  type="button"
+                  onClick={() => setActiveSector(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="cards">
+          {filteredPages.map((page) => (
+            <PageCard key={page.sourceFile} page={page} />
+          ))}
+        </div>
+      </section>
     </main>
   )
 }
@@ -174,25 +231,33 @@ function StatChip({ active = false, label, value, onClick }: StatChipProps) {
 }
 
 function PageCard({ page }: { page: LibraryPage }) {
-  const categoryLabel = categoryLabels[page.category]
+  // A generated case lists the decks it has; other pages keep their category and first tags.
+  const tags = page.formats ?? [categoryLabels[page.category], ...page.tags.slice(0, 2)]
 
   return (
     <Link className="card" to={page.routePath}>
       <div className="card-meta">
         <span className={`sector-dot ${page.sectorKey}`} aria-hidden="true" />
         <span>{page.sectorLabel}</span>
-        <span className="dot-sep">.</span>
-        <span>{page.readMinutes} min read</span>
-        <span className="dot-sep">.</span>
-        <span>Updated {page.updated}</span>
-        <span className="card-pill">{page.audience}</span>
+        {page.statusKey ? (
+          <span className={`status-badge status-${page.statusKey}`}>{page.statusLabel}</span>
+        ) : (
+          <span className="card-pill">{page.audience}</span>
+        )}
       </div>
+      {page.client ? <div className="card-client">{page.client}</div> : null}
       <h3 className="card-title">{page.shortTitle}</h3>
       <p className="card-desc">{page.description}</p>
+      <p className="card-when">
+        Updated {page.updated}
+        <span className="dot-sep" aria-hidden="true">
+          ·
+        </span>
+        {page.readMinutes} min read
+      </p>
       <div className="card-foot">
         <div className="card-tags">
-          <span className="tag">{categoryLabel}</span>
-          {page.tags.slice(0, 2).map((tag) => (
+          {tags.map((tag) => (
             <span key={tag} className="tag">
               {tag}
             </span>
@@ -200,7 +265,7 @@ function PageCard({ page }: { page: LibraryPage }) {
         </div>
         <span className="card-open">
           Open
-          <ArrowRight size={13} aria-hidden="true" />
+          <ArrowRight size={14} aria-hidden="true" />
         </span>
       </div>
     </Link>

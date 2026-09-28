@@ -1,0 +1,14 @@
+{
+    "subscriptionId":  "d609115f-cddc-476c-89db-405004e7b68c",
+    "tenantId":  "805d0794-f9ac-42a6-b40a-9e41418a213e",
+    "resourceGroup":  "fsp-dataproduct-dev-rg",
+    "location":  "uksouth",
+    "webAppName":  "fsp-case-study-hub",
+    "existingPlanId":  "/subscriptions/d609115f-cddc-476c-89db-405004e7b68c/resourceGroups/fsp-dataproduct-dev-rg/providers/Microsoft.Web/serverfarms/ASP-fspdataproductdevrg-a4ba",
+    "entraClientId":  "f7aff9ae-f36f-42fe-a9f4-6cb473bd92d7",
+    "entraObjectId":  "b6d7b33a-7243-4f55-ab00-39ecb8f7c140",
+    "identityMode":  "shared",
+    "expectedOrigin":  "https://fsp-case-study-hub.azurewebsites.net",
+    "publicOrigin":  "https://fsp-case-study-hub.azurewebsites.net",
+    "createdAt":  "2026-09-25"
+}

@@ -1,117 +1,139 @@
 # FSP case studies
 
-React and Vite app for the FSP Data and AI case study programme.
+React and Vite app for browsing FSP case studies, live at https://fsp-case-study-hub.azurewebsites.net
+behind FSP sign-in. Each case page is generated from the same record as its decks.
 
-The current case-study bundle has been split into individual static HTML pages
-under `public/legacy-pages`. React owns the app shell, routing, navigation,
-search, filters, product pages, and document viewer.
+## The case study framework
 
-The current local design is a standalone app shell: searchable sidebar,
-collapsible navigation, library dashboard, and focused embedded case-study
-documents.
+The cases are not in this repository. They live in the case study framework, which writes the records,
+builds the decks and checks them: `Code/Case Studies/fsp-case-study-framework-v0.3.0` on Drew's laptop.
+This site reads three things from it: the records under `cases/`, the built decks in each
+`cases/<id>/outputs/`, and its exporter, `scripts/export_site_cases.py`, which decides what a record
+may put on a page. The exporter stays in the framework because it uses the deck builders and
+templates directly.
+
+`case-framework.json` says where the framework is, relative to this folder. Set `FSP_CASE_FRAMEWORK`
+to override it for one shell. The hosted build (`npm run build:hosted`) needs neither; the dev server,
+`npm run cases`, `npm run build` and `scripts/package.py` need both the folder and its Python.
+
+Until 2026-09-28 the site lived inside the framework, at `discovery/websites/case-studies`. Its history
+there is in the framework's commits `ec0d1e1`, `2c22490`, `586caed`, `f5ab587` and `821eb10`. The
+commits before that in this repository are the old public site on GitHub Pages and Azure Static Web
+Apps, which this code replaced.
+
+## How a case page is made
+
+The framework's exporter reads every `cases/<id>/case-study.yaml` and writes the case catalogue. Each page shows the copy from that case's `deck.one_pager` and `deck.long_form` slots, in
+slide order, next to download buttons for the built PPTX files. It never reads `content.*`, and it
+leaves out source-trace notes and layout switches, so a page cannot show a claim the decks do not
+make. The app fetches the catalogue from `/api/cases` at runtime, and decks from `/api/decks/...`;
+neither is ever bundled, so the site's public JavaScript holds no case copy.
+
+- A format appears only if its PPTX exists in `cases/<id>/outputs/`.
+- The exporter checks every line on the page against the built deck's own text. If a record has
+  changed since its deck was built, the page says which lines are not in the deck; rebuild with
+  `python scripts/build_case.py <id>`.
+- Status, classification, sign-off and permissions come from the record's `qa` and `governance`
+  fields, using the same status logic as `scripts/search_cases.py`.
+- A long-form slide 4 that carries an imported source diagram links to the PPTX instead of
+  redrawing it.
+
+The generated file is gitignored. It holds every case's slide copy, drafts included.
 
 ## Local development
+
+Needs Node 20.19 or later, the framework beside it (see above) and the framework's Python
+requirements (`pip install -r requirements.txt` in the framework).
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Build
+`npm run dev` and `npm run build` run the exporter first (`npm run cases` runs it alone), writing the
+local catalogue to `src/data/generated/cases.local.json`. The dev server answers `/api/config`,
+`/api/cases` and `/api/decks/...` itself, without sign-in, streaming decks from the framework's
+`cases/*/outputs/`;
+decks are never copied into `public/` or `dist/`. It re-runs the exporter and reloads the page when a
+case record or deck changes. Set `PYTHON` if `python` on your PATH is not the right interpreter.
 
-```bash
-npm run build
+## Design
+
+The look follows the FSP Data Products handbook, so the two internal sites share a palette, a type
+system and a theme switch.
+
+- **Tokens** are CSS custom properties at the top of `src/index.css`, taken from the handbook's
+  proposal and 2026 brand layers. Page styles are in `src/case.css` and `src/product.css`.
+- **Themes:** light and dark. An explicit choice from the top-bar toggle is stored under
+  `fsp-case-hub-theme` and applied in `index.html` before the first paint. Without one, the system
+  setting applies.
+- **Type:** the brand face, Neue Haas Grotesk Text Pro, where it is installed. Otherwise Neue Haas
+  Unica from the Adobe Fonts kit linked in `index.html`, then Helvetica Neue and Arial. The kit has
+  weights 300, 400 and 700 only. Small labels use the system monospace, as the handbook does.
+- **Logo:** `src/assets/fsp-logo-on-light.png` and `fsp-logo-on-dark.png` are the official artwork
+  from the long-form template, copied unchanged. Never retype or recolour the wordmark.
+
+## The FSP site
+
+The site runs on the FSP tenant the way the Data Products handbook does: a Python App Service on the
+handbook's shared Linux B1 plan in FSP Development (UK South), behind company sign-in through the
+shared **Data Product - Internal Apps** registration. Targets are in `deployment/target.json`.
+
+- **Who can open it:** any FSP member account; guests and other tenants are refused. Drew chose that
+  audience on 2026-09-25. Every page and deck says it is an internal draft and not cleared externally.
+- **What is public:** only the React shell, its assets, the sign-in bridge and the product demo.
+  `server/app.py` serves the catalogue and decks from `/api/*` once `server/auth.py` has validated a
+  delegated member token. That validator mirrors the handbook's `backend/auth.py`; keep them in step.
+- **What it carries:** the case pages and the Anomaly Intelligence product page. The legacy pages,
+  the campaign plan and the bundle stay in the local preview only; a hosted build leaves them out.
+
+Release steps, from this folder:
+
+```powershell
+python -m venv .venv; .venv/Scripts/python.exe -m pip install -r requirements-dev.txt   # once
+powershell -File scripts/provision.ps1                 # what-if for the web app
+powershell -File scripts/provision.ps1 -Apply          # create or update it
+powershell -File scripts/register-redirects.ps1        # show the two sign-in addresses to add
+powershell -File scripts/register-redirects.ps1 -Apply # append them; nothing else on the registration changes
+powershell -File scripts/deploy.ps1                    # build, test and package only
+powershell -File scripts/deploy.ps1 -Upload            # upload a committed release
+python scripts/smoke_live.py                           # anonymous live checks
 ```
 
-The production build is emitted to `dist`.
+`deploy.ps1` builds the hosted shell (`npm run build:hosted`), runs the server's security tests
+(`server/tests`), and packages an explicit allowlist with `scripts/package.py`. The packager exports
+the hosted catalogue fresh, refuses it if any page disagrees with its deck, checks every deck against
+the hash the catalogue records, and fails if case copy has reached the public shell. Each package's
+`version.json` records this repository's commit and the framework's. `deploy.ps1 -Upload` refuses
+uncommitted work here, and in the framework's `cases`, `scripts`, `templates` and `config`. After an
+upload, sign in with an FSP account to confirm access.
 
-## Content model
+This repository no longer deploys anywhere by itself: the old GitHub Pages and Static Web Apps
+workflows were removed on 2026-09-28. The copies they published before then may still be live until
+they are taken down; see `deployment/STATUS.md`.
 
-`src/data/page-catalog.json` is the source of truth for the library. Each entry
-defines the route, display labels, category, source bundle filename, generated
-asset filename where relevant, sector, template, description, summary, tags,
-owner, audience, and read-time metadata.
+## Legacy pages and other content
 
-`src/data/pages.ts` derives app-ready values from that catalogue, including:
+`public/legacy-pages/` holds the case studies from the original HTML bundle. They are listed under
+"Legacy pages" and are not verified: facts come from the case records, never from these pages. Retire
+each one once its engagement has a generated page.
 
-- `assetPath`
-- `fullTitle`
-- `summary`
-- `sectorKey`
-- case-study, product, and campaign collections
-- filter options
-- template counts
-
-The extraction script also reads `src/data/page-catalog.json`, so the app and
-generated static assets stay aligned.
-
-Product detail content lives in `src/data/products.ts`. Product catalogue items
-use `category: "product"` and a `productKey` that maps to the matching product
-suite data.
-
-## Add or edit content
-
-For small edits to existing case studies, edit the relevant file in
-`public/legacy-pages`.
-
-To add a new case study:
-
-1. Add the page to the source bundle, or keep it as a standalone exported HTML
-   file and pass it to the extraction script.
-2. Add one entry to `src/data/page-catalog.json`.
-3. Use a stable route such as `/case-studies/example-client`.
-4. Set `category` to `case-study`, `product`, `campaign`, or `overview`.
-5. Add `summary`, `tags`, `readMinutes`, `updated`, `audience`, and `owner`
-   metadata so the library card and sidebar update automatically.
-6. Run `npm run build` and `npm run lint`.
-
-To add a new product page:
-
-1. Add a product catalogue entry in `src/data/page-catalog.json`.
-2. Set the route under `/products/...`, set `category` to `product`, and add a
-   stable `productKey`.
-3. Add the product suite or product definition in `src/data/products.ts`.
-4. Product pages render natively through `ProductPage.tsx`, so no legacy HTML
-   asset is required.
-5. Run `npm run build` and `npm run lint`.
-
-The shell components live under `src/components`:
-
-- `Sidebar.tsx` for searchable grouped navigation
-- `LibraryDashboard.tsx` for dashboard, filters, activity rail, and cards
-- `ProductPage.tsx` for native product-suite pages
-- `Reader.tsx` for the focused embedded HTML page
-
-When replacing the whole exported bundle, first add any new page mappings to
-`src/data/page-catalog.json`, then run:
+`src/data/page-catalog.json` lists the legacy pages, the product page and the campaign assets.
+Product pages render natively from `src/data/products.ts` through `ProductPage.tsx`. The extraction
+script reads the same catalogue when a bundle is re-exported:
 
 ```bash
 npm run extract:legacy -- "C:\path\to\case_studies_fsp_design.html"
 ```
 
-Standalone HTML exports can be added after the bundle path:
+The shell components live under `src/components`:
 
-```bash
-npm run extract:legacy -- "C:\path\to\case_studies_fsp_design.html" "C:\path\to\new_case_study.html"
-```
+- `SignInScreen.tsx` for company sign-in, shown until the catalogue has loaded
+- `CasePage.tsx` for pages generated from case records
+- `Topbar.tsx` for the wordmark, navigation toggle and theme toggle
+- `Sidebar.tsx` for the searchable navigation rail, a drawer on small screens
+- `LibraryDashboard.tsx` for the dashboard, filters, activity rail and cards
+- `ProductPage.tsx` for native product-suite pages
+- `Reader.tsx` for legacy HTML pages
 
-## Azure Static Web Apps
-
-This repo includes an Azure Static Web Apps workflow and
-`public/staticwebapp.config.json`. Vite copies that config into `dist` during
-the production build so Azure Static Web Apps can apply routing rules.
-
-Create an Azure Static Web Apps resource, connect it to this GitHub repo, and
-add the deployment token as the repository secret referenced by the workflow.
-
-Recommended build settings:
-
-```text
-App location: /
-Output location: dist
-API location: blank
-```
-
-The current static web app config is public-link friendly. For an internal-only
-deployment later, configure Microsoft Entra ID so sign-in is restricted to the
-intended tenant or group before sharing the URL.
+Run `npm run build` and `npm run lint` after changes.

@@ -12,6 +12,19 @@ dist
 dist-ssr
 *.local
 
+# Generated from the framework's cases/*/case-study.yaml by its scripts/export_site_cases.py. It
+# holds every case's slide copy, drafts included, so it is rebuilt locally and never committed.
+src/data/generated/
+
+# Deployment packages, the hosted catalogue, audit logs and registration snapshots. The packages
+# carry every deck and all case copy, so they never enter history.
+artifacts/
+
+# The server's local Python environment, for its tests, and headless-browser profiles from checks.
+.venv/
+__pycache__/
+.cache/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
