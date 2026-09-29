@@ -6,7 +6,7 @@ behind FSP sign-in. Each case page is generated from the same record as its deck
 ## The case study framework
 
 The cases are not in this repository. They live in the case study framework, which writes the records,
-builds the decks and checks them: `Code/Case Studies/fsp-case-study-framework-v0.3.0` on Drew's laptop.
+builds the decks and checks them: `Code/FSP-Case-Study-Framework` on Drew's laptop, beside this folder.
 This site reads three things from it: the records under `cases/`, the built decks in each
 `cases/<id>/outputs/`, and its exporter, `scripts/export_site_cases.py`, which decides what a record
 may put on a page. The exporter stays in the framework because it uses the deck builders and
